@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Yürekli Savaşçı</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-user-select:none;touch-action:none;}
+body{background:#000;overflow:hidden;width:100vw;height:100vh;font-family:'Arial Black',Arial,sans-serif;}
+canvas{display:block;}
+#gc{position:fixed;top:0;left:0;width:100vw;height:100vh;background:#000;}
+
+/* HUD */
+#hud{position:fixed;top:0;left:0;width:100%;z-index:200;pointer-events:none;}
+#status-bar{display:flex;justify-content:space-between;align-items:center;padding:4px 8px;background:rgba(0,0,0,0.7);}
+#energy-bar-wrap{display:flex;align-items:center;gap:4px;flex:1;}
+#energy-label{color:#ffd700;font-size:10px;white-space:nowrap;}
+#energy-bar-bg{flex:1;height:8px;background:#333;border-radius:4px;overflow:hidden;max-width:120px;}
+#energy-bar-fill{height:100%;background:linear-gradient(90deg,#ffd700,#ff8c00);border-radius:4px;transition:width 0.3s;}
+#energy-timer{color:#ff8c00;font-size:9px;white-space:nowrap;}
+#top-right{display:flex;align-items:center;gap:8px;}
+#coin-display{display:flex;align-items:center;gap:3px;background:rgba(0,0,0,0.6);border:1px solid #ffd700;border-radius:6px;padding:2px 6px;}
+#coin-icon{width:14px;height:14px;background:#ffd700;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;color:#000;font-weight:bold;flex-shrink:0;}
+#coin-val{color:#ffd700;font-size:11px;font-weight:bold;}
+#level-display{display:flex;align-items:center;gap:3px;background:rgba(0,0,0,0.6);border:1px solid #4caf50;border-radius:6px;padding:2px 6px;}
+#level-val{color:#4caf50;font-size:11px;font-weight:bold;}
+
+/* Fight HUD */
+#fight-hud{position:fixed;top:30px;left:0;width:100%;z-index:200;pointer-events:none;display:none;padding:0 8px;}
+#fight-top{display:flex;justify-content:space-between;align-items:center;}
+.hp-block{width:42%;}
+.hp-name{font-size:10px;color:#ffd700;margin-bottom:2px;text-shadow:1px 1px #000;}
+.hp-bar-bg{width:100%;height:10px;background:#333;border-radius:3px;overflow:hidden;border:1px solid #555;}
+.hp-bar-fill{height:100%;border-radius:3px;transition:width 0.15s;}
+#fight-center{text-align:center;flex:1;}
+#match-timer{color:#fff;font-size:13px;font-weight:bold;text-shadow:0 0 8px #000;}
+#rounds-display{display:flex;justify-content:space-around;margin-top:4px;}
+.round-dots{display:flex;gap:4px;}
+.round-dot{width:10px;height:10px;border-radius:50%;background:#444;border:1px solid #888;}
+.round-dot.won{background:#ffd700;}
+
+/* CONTROLS */
+#controls{position:fixed;bottom:0;left:0;width:100%;height:38%;background:rgba(0,0,0,0.85);border-top:1px solid #333;z-index:300;display:none;align-items:center;justify-content:space-between;padding:0 20px;}
+#joy-wrap{position:relative;width:110px;height:110px;}
+#joy-bg{width:110px;height:110px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:50%;}
+#joy-knob{position:absolute;width:44px;height:44px;background:rgba(255,255,255,0.18);border:2px solid rgba(255,255,255,0.5);border-radius:50%;top:33px;left:33px;transition:transform 0.04s;}
+#action-btns{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:8px;}
+.abtn{width:52px;height:52px;border-radius:50%;border:2px solid;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;text-align:center;line-height:1.2;background:rgba(0,0,0,0.6);}
+#btn-punch{border-color:#ff5722;color:#ff5722;}
+#btn-kick{border-color:#2196f3;color:#2196f3;}
+#btn-sword{border-color:#ffd700;color:#ffd700;}
+#btn-roll{border-color:#9c27b0;color:#9c27b0;}
+
+/* SCREENS */
+.screen{position:fixed;top:0;left:0;width:100%;height:100%;z-index:500;display:none;flex-direction:column;align-items:center;justify-content:center;}
+#main-menu{background:linear-gradient(160deg,#0a0a0a 0%,#1a0a00 50%,#0a0a0a 100%);}
+#main-menu .logo{color:#ffd700;font-size:28px;font-weight:900;text-shadow:0 0 20px rgba(255,165,0,0.5);letter-spacing:2px;margin-bottom:4px;}
+#main-menu .subtitle{color:#888;font-size:11px;margin-bottom:30px;letter-spacing:3px;}
+.menu-btn{width:220px;padding:12px;margin:6px 0;background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.3);border-radius:8px;color:#ffd700;font-size:14px;font-weight:bold;text-align:center;letter-spacing:1px;}
+.menu-btn:active{background:rgba(255,215,0,0.2);}
+.menu-btn.red{border-color:rgba(244,67,54,0.4);color:#f44336;background:rgba(244,67,54,0.08);}
+.menu-btn.green{border-color:rgba(76,175,80,0.4);color:#4caf50;background:rgba(76,175,80,0.08);}
+
+.panel-bg{background:rgba(0,0,0,0.97);width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:20px 16px;overflow-y:auto;}
+.panel-title{color:#ffd700;font-size:18px;font-weight:bold;margin-bottom:16px;letter-spacing:2px;}
+.panel-back{color:#888;font-size:13px;margin-top:16px;padding:8px 24px;border:1px solid #333;border-radius:6px;}
+
+/* MARKET */
+.item-row{width:100%;max-width:340px;background:#111;border:1px solid #333;border-radius:8px;padding:10px 12px;margin:5px 0;display:flex;justify-content:space-between;align-items:center;}
+.item-name{color:#fff;font-size:12px;font-weight:bold;}
+.item-desc{color:#888;font-size:10px;margin-top:2px;}
+.item-price{color:#ffd700;font-size:12px;font-weight:bold;white-space:nowrap;margin-left:8px;}
+.item-buy{background:#ffd700;color:#000;border:none;border-radius:5px;padding:5px 10px;font-size:11px;font-weight:bold;}
+.item-buy:active{opacity:0.8;}
+.item-owned{color:#4caf50;font-size:11px;}
+
+/* SKILLS */
+.skill-row{width:100%;max-width:340px;background:#0d1a0d;border:1px solid #1a3a1a;border-radius:8px;padding:10px 12px;margin:5px 0;display:flex;justify-content:space-between;align-items:center;}
+
+/* DIFFICULTY */
+.diff-btn{width:220px;padding:14px;margin:5px;border-radius:8px;font-size:14px;font-weight:bold;text-align:center;border:2px solid;}
+.diff-easy{border-color:#4caf50;color:#4caf50;background:rgba(76,175,80,0.08);}
+.diff-medium{border-color:#ffd700;color:#ffd700;background:rgba(255,215,0,0.08);}
+.diff-hard{border-color:#ff9800;color:#ff9800;background:rgba(255,152,0,0.08);}
+.diff-vhard{border-color:#f44336;color:#f44336;background:rgba(244,67,54,0.08);}
+.diff-impossible{border-color:#9c27b0;color:#9c27b0;background:rgba(156,39,176,0.08);}
+
+/* CONFIRM DIALOG */
+#confirm-dlg{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:900;display:none;align-items:center;justify-content:center;}
+#confirm-box{background:#111;border:2px solid #ffd700;border-radius:12px;padding:20px;width:280px;text-align:center;}
+#confirm-msg{color:#fff;font-size:14px;margin-bottom:16px;}
+.confirm-yes{background:#ffd700;color:#000;border:none;border-radius:6px;padding:10px 24px;font-size:14px;font-weight:bold;margin:4px;}
+.confirm-no{background:transparent;color:#888;border:1px solid #444;border-radius:6px;padding:10px 24px;font-size:14px;margin:4px;}
+
+/* NOTIFICATION */
+#notif{position:fixed;top:50px;left:50%;transform:translateX(-50%);background:#1a1a00;border:1px solid #ffd700;border-radius:8px;padding:8px 16px;color:#ffd700;font-size:12px;z-index:1000;display:none;text-align:center;white-space:nowrap;}
+
+/* COIN ANIMATION */
+.coin-fly{position:fixed;color:#ffd700;font-size:16px;font-weight:bold;pointer-events:none;z-index:999;animation:coinFly 1s ease-out forwards;}
+@keyframes coinFly{0%{opacity:1;transform:translateY(0);}100%{opacity:0;transform:translateY(-60px);}}
+
+/* ROUND ANNOUNCE */
+#round-announce{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#ffd700;font-size:48px;font-weight:900;z-index:700;display:none;text-shadow:0 0 30px #ff8c00;animation:roundPop 0.5s ease-out;}
+@keyframes roundPop{0%{transform:translate(-50%,-50%) scale(0.3);opacity:0;}60%{transform:translate(-50%,-50%) scale(1.1);}100%{transform:translate(-50%,-50%) scale(1);opacity:1;}}
+
+#in-game-menu-btn{position:fixed;top:32px;left:8px;z-index:250;background:rgba(0,0,0,0.7);border:1px solid #444;border-radius:6px;padding:4px 8px;color:#fff;font-size:11px;display:none;}
+</style>
+</head>
+<body>
+<div id="gc"><canvas id="c"></canvas></div>
+
+<!-- STATUS BAR (always visible) -->
+<div id="hud">
+  <div id="status-bar">
+    <div id="energy-bar-wrap">
+      <span id="energy-label">⚡ Hak:</span>
+      <div id="energy-bar-bg"><div id="energy-bar-fill" style="width:100%"></div></div>
+      <span id="energy-timer"></span>
+    </div>
+    <div id="top-right">
+      <div id="coin-display"><div id="coin-icon">💰</div><span id="coin-val">0</span></div>
+      <div id="level-display"><span style="color:#4caf50;font-size:10px;">LV</span><span id="level-val">1</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- FIGHT HUD -->
+<div id="fight-hud">
+  <div id="fight-top">
+    <div class="hp-block">
+      <div class="hp-name" id="p-name">GÖLGE</div>
+      <div class="hp-bar-bg"><div id="p-hp-fill" class="hp-bar-fill" style="background:#4caf50;width:100%"></div></div>
+    </div>
+    <div id="fight-center">
+      <div id="match-timer">0:00</div>
+    </div>
+    <div class="hp-block" style="text-align:right;">
+      <div class="hp-name" id="e-name">BOT</div>
+      <div class="hp-bar-bg"><div id="e-hp-fill" class="hp-bar-fill" style="background:#f44336;width:100%"></div></div>
+    </div>
+  </div>
+  <div id="rounds-display">
+    <div style="display:flex;align-items:center;gap:6px;">
+      <span style="color:#aaa;font-size:10px;">SEN</span>
+      <div class="round-dots" id="p-rounds"><div class="round-dot"></div><div class="round-dot"></div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <div class="round-dots" id="e-rounds"><div class="round-dot"></div><div class="round-dot"></div></div>
+      <span style="color:#aaa;font-size:10px;">BOT</span>
+    </div>
+  </div>
+</div>
+
+<!-- IN-GAME MENU BTN -->
+<div id="in-game-menu-btn" onclick="showInGameMenu()">☰ MENÜ</div>
+
+<!-- CONTROLS -->
+<div id="controls">
+  <div id="joy-wrap">
+    <div id="joy-bg"></div>
+    <div id="joy-knob"></div>
+  </div>
+  <div id="action-btns">
+    <div class="abtn" id="btn-punch">YUMRUK</div>
+    <div class="abtn" id="btn-kick">TEKME</div>
+    <div class="abtn" id="btn-sword">KILIÇ</div>
+    <div class="abtn" id="btn-roll">TAKLA</div>
+  </div>
+</div>
+
+<!-- MAIN MENU -->
+<div id="main-menu" class="screen" style="display:flex;">
+  <div class="logo">YÜREKLİ SAVAŞÇI</div>
+  <div class="subtitle">SHADOW FIGHTER</div>
+  <div class="menu-btn green" onclick="showScreen('play-menu')">⚔ OYNA</div>
+  <div class="menu-btn" onclick="showScreen('market-screen')">🛒 MARKET</div>
+  <div class="menu-btn" onclick="showScreen('skills-screen')">⚡ YETENEKLER</div>
+  <div class="menu-btn" onclick="showScreen('settings-screen')">⚙ AYARLAR</div>
+  <div class="menu-btn red" onclick="showScreen('credits-screen')">👤 YAPIMCI</div>
+</div>
+
+<!-- PLAY MENU -->
+<div id="play-menu" class="screen">
+  <div class="panel-bg">
+    <div class="panel-title">MOD SEÇ</div>
+    <div class="menu-btn" onclick="showScreen('difficulty-screen')">⚔ DÜELLO MODU</div>
+    <div class="menu-btn green" onclick="startTraining()">🥊 ANTRENMAN MODU</div>
+    <div class="panel-back" onclick="showScreen('main-menu')">← GERİ</div>
+  </div>
+</div>
+
+<!-- DIFFICULTY -->
+<div id="difficulty-screen" class="screen">
+  <div class="panel-bg">
+    <div class="panel-title">ZORLUK SEÇ</div>
+    <div class="diff-btn diff-easy" onclick="startDuel(0)">KOLAY &nbsp;<span style="font-size:11px;opacity:0.7">+10💰</span></div>
+    <div class="diff-btn diff-medium" onclick="startDuel(1)">ORTA &nbsp;<span style="font-size:11px;opacity:0.7">+20💰</span></div>
+    <div class="diff-btn diff-hard" onclick="startDuel(2)">ZOR &nbsp;<span style="font-size:11px;opacity:0.7">+50💰</span></div>
+    <div class="diff-btn diff-vhard" onclick="startDuel(3)">ÇOK ZOR &nbsp;<span style="font-size:11px;opacity:0.7">+70💰</span></div>
+    <div class="diff-btn diff-impossible" onclick="startDuel(4)">İMKANSIZ &nbsp;<span style="font-size:11px;opacity:0.7">+150💰</span></div>
+    <div class="panel-back" onclick="showScreen('play-menu')">← GERİ</div>
+  </div>
+</div>
+
+<!-- MARKET -->
+<div id="market-screen" class="screen">
+  <div class="panel-bg">
+    <div class="panel-title">⚔ MARKET</div>
+    <div id="market-list"></div>
+    <div class="panel-back" onclick="showScreen('main-menu')">← GERİ</div>
+  </div>
+</div>
+
+<!-- SKILLS -->
+<div id="skills-screen" class="screen">
+  <div class="panel-bg">
+    <div class="panel-title">⚡ YETENEKLER</div>
+    <div id="skills-list"></div>
+    <div class="panel-back" onclick="showScreen('main-menu')">← GERİ</div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div id="settings-screen" class="screen">
+  <div class="panel-bg">
+    <div class="panel-title">⚙ AYARLAR</div>
+    <div class="item-row" style="max-width:300px;">
+      <div><div class="item-name">Dövüş Müziği</div><div class="item-desc">Düello esnasında çalar</div></div>
+      <label style="position:relative;width:44px;height:24px;display:block;"><input type="checkbox" id="toggle-music" style="opacity:0;width:0;height:0;" onchange="toggleMusic()"><span id="toggle-music-slider" style="position:absolute;top:0;left:0;right:0;bottom:0;background:#333;border-radius:12px;cursor:pointer;transition:0.2s;"></span></label>
+    </div>
+    <div class="item-row" style="max-width:300px;">
+      <div><div class="item-name">Buton Sesleri</div><div class="item-desc">Vuruş sesleri</div></div>
+      <label style="position:relative;width:44px;height:24px;display:block;"><input type="checkbox" id="toggle-sfx" style="opacity:0;width:0;height:0;" checked onchange="toggleSfx()"><span id="toggle-sfx-slider" style="position:absolute;top:0;left:0;right:0;bottom:0;background:#4caf50;border-radius:12px;cursor:pointer;transition:0.2s;"></span></label>
+    </div>
+    <div class="item-row" style="max-width:300px;margin-top:10px;">
+      <div><div class="item-name" style="color:#f44336;">Veriyi Sıfırla</div><div class="item-desc">Tüm coin ve eşyaları sil</div></div>
+      <button class="item-buy" style="background:#f44336;" onclick="resetData()">SİL</button>
+    </div>
+    <div class="panel-back" onclick="showScreen('main-menu')">← GERİ</div>
+  </div>
+</div>
+
+<!-- CREDITS -->
+<div id="credits-screen" class="screen">
+  <div class="panel-bg">
+    <div class="panel-title">👤 YAPIMCI</div>
+    <div style="max-width:300px;text-align:center;">
+      <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#ffd700,#ff8c00);margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:28px;">⚔</div>
+      <div style="color:#ffd700;font-size:18px;font-weight:bold;margin-bottom:8px;">Ceyhun Başaran</div>
+      <div style="color:#aaa;font-size:12px;line-height:1.7;margin-bottom:16px;">
+        Yürekli Savaşçı, tamamen özgün bir mobil dövüş oyunudur. Oyun, dinamik dövüş mekaniği, akıllı bot yapay zekası ve derin bir gelişim sistemiyle tasarlanmıştır.<br><br>
+        Her karakter hareketi el ile kodlanmış, her animasyon frame frame çizilmiştir.<br><br>
+        <span style="color:#ffd700;">Sürüm: 1.0.0</span><br>
+        <span style="color:#4caf50;">Tür: Mobil Dövüş</span>
+      </div>
+    </div>
+    <div class="panel-back" onclick="showScreen('main-menu')">← GERİ</div>
+  </div>
+</div>
+
+<!-- CONFIRM DIALOG -->
+<div id="confirm-dlg">
+  <div id="confirm-box">
+    <div id="confirm-msg">Emin misin?</div>
+    <div>
+      <button class="confirm-yes" id="confirm-yes-btn">EVET</button>
+      <button class="confirm-no" id="confirm-no-btn">HAYIR</button>
+    </div>
+  </div>
+</div>
+
+<!-- ROUND ANNOUNCE -->
+<div id="round-announce"></div>
+
+<!-- NOTIFICATION -->
+<div id="notif"></div>
+
+<script>
+// ============================================================
+// SAVE / LOAD
+// ============================================================
+const SAVE_KEY = 'yureklisavasci_v2';
+function loadSave(){
+  try{ return JSON.parse(localStorage.getItem(SAVE_KEY)) || {}; }catch(e){ return {}; }
+}
+function writeSave(){
+  localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+}
+let save = loadSave();
+if(!save.coins) save.coins = 0;
+if(!save.level) save.level = 1;
+if(!save.xp) save.xp = 0;
+if(!save.energy) save.energy = 10;
+if(!save.energyTs) save.energyTs = Date.now();
+if(!save.owned) save.owned = {};
+if(!save.equipped) save.equipped = {};
+if(!save.skills) save.skills = {};
+if(!save.musicOn) save.musicOn = false;
+if(!save.sfxOn) save.sfxOn = true;
+
+const MAX_ENERGY = 10;
+const ENERGY_REGEN_MS = 2 * 60 * 60 * 1000; // 2 hours
+
+function getEnergy(){
+  let now = Date.now();
+  let elapsed = now - save.energyTs;
+  let regen = Math.floor(elapsed / ENERGY_REGEN_MS);
+  if(regen > 0){
+    save.energy = Math.min(MAX_ENERGY, save.energy + regen);
+    save.energyTs = now - (elapsed % ENERGY_REGEN_MS);
+    writeSave();
+  }
+  return save.energy;
+}
+function useEnergy(){
+  if(getEnergy() <= 0) return false;
+  save.energy--;
+  writeSave();
+  return true;
+}
+function updateHUD(){
+  document.getElementById('coin-val').textContent = save.coins;
+  document.getElementById('level-val').textContent = save.level;
+  let e = getEnergy();
+  document.getElementById('energy-bar-fill').style.width = (e/MAX_ENERGY*100)+'%';
+  document.getElementById('energy-label').textContent = '⚡ '+e+'/'+MAX_ENERGY;
+  if(e < MAX_ENERGY){
+    let elapsed = Date.now() - save.energyTs;
+    let remain = ENERGY_REGEN_MS - elapsed;
+    let mins = Math.floor(remain/60000);
+    let secs = Math.floor((remain%60000)/1000);
+    document.getElementById('energy-timer').textContent = mins+'d '+secs+'s';
+  } else {
+    document.getElementById('energy-timer').textContent = 'DOLU';
+  }
+}
+setInterval(updateHUD, 1000);
+updateHUD();
+
+// ============================================================
+// MARKET DATA
+// ============================================================
+const MARKET_ITEMS = [
+  {id:'sword1', name:'Demir Kılıç', desc:'Hasar +5', price:100, dmgBonus:5, color:'#aaa'},
+  {id:'sword2', name:'Çelik Kılıç', desc:'Hasar +12', price:200, dmgBonus:12, color:'#4fc3f7'},
+  {id:'sword3', name:'Elmas Kılıç', desc:'Hasar +25', price:450, dmgBonus:25, color:'#00e5ff'},
+  {id:'sword4', name:'Gizemli Kılıç', desc:'Hasar +40', price:800, dmgBonus:40, color:'#e040fb'},
+  {id:'sword5', name:'Ejder Kılıcı', desc:'Hasar +60', price:1500, dmgBonus:60, color:'#ff3d00'},
+  {id:'armor1', name:'Deri Zırh', desc:'Savunma +5', price:150, defBonus:5, color:'#8d6e63'},
+  {id:'armor2', name:'Zincir Zırh', desc:'Savunma +15', price:350, defBonus:15, color:'#607d8b'},
+  {id:'armor3', name:'Plaka Zırh', desc:'Savunma +30', price:700, defBonus:30, color:'#90a4ae'},
+  {id:'boots1', name:'Hız Botu', desc:'Hız +20%', price:250, speedBonus:0.2, color:'#ffb300'},
+  {id:'boots2', name:'Rüzgar Botu', desc:'Hız +40%', price:600, speedBonus:0.4, color:'#00bcd4'},
+];
+
+const SKILLS_DATA = [
+  {id:'sk_punch2', name:'Güçlü Yumruk', desc:'Yumruk hasarı 2x', price:200, type:'punch'},
+  {id:'sk_kick2', name:'Güçlü Tekme', desc:'Tekme hasarı 2x', price:200, type:'kick'},
+  {id:'sk_combo', name:'Kombo', desc:'3 vuruş ardışık', price:300, type:'combo'},
+  {id:'sk_dodge', name:'Çabuk Kaçış', desc:'Kaçış hızı +50%', price:250, type:'dodge'},
+  {id:'sk_counter', name:'Karşı Vuruş', desc:'Bot saldırısı sonrası +20 hasar', price:400, type:'counter'},
+  {id:'sk_spin', name:'Döner Tekme', desc:'Alan hasarı verir', price:350, type:'spin'},
+  {id:'sk_jump_kick', name:'Zıplayıp Tekme', desc:'Havada tekme', price:300, type:'jump_kick'},
+  {id:'sk_backflip', name:'Ters Takla Vuruş', desc:'Geri takla + vuruş', price:450, type:'backflip'},
+  {id:'sk_dragon', name:'Ejder Vuruşu', desc:'Özel güçlü vuruş', price:600, type:'dragon'},
+  {id:'sk_shadow', name:'Gölge Adımı', desc:'Anlık ışınlanma', price:800, type:'shadow'},
+];
+
+function renderMarket(){
+  let html = '';
+  MARKET_ITEMS.forEach(item => {
+    let owned = save.owned[item.id];
+    let eq = save.equipped[item.id];
+    html += `<div class="item-row"><div><div class="item-name" style="color:${item.color||'#fff'}">${item.name}</div><div class="item-desc">${item.desc}</div></div>`;
+    if(owned){
+      if(eq) html += `<span class="item-owned">✓ GİYİLDİ</span>`;
+      else html += `<button class="item-buy" style="background:#4caf50;" onclick="equipItem('${item.id}')">GİY</button>`;
+    } else {
+      html += `<div style="display:flex;align-items:center;gap:6px;"><span class="item-price">${item.price}💰</span><button class="item-buy" onclick="buyItem('${item.id}')">AL</button></div>`;
+    }
+    html += '</div>';
+  });
+  document.getElementById('market-list').innerHTML = html;
+}
+
+function buyItem(id){
+  let item = MARKET_ITEMS.find(i=>i.id===id);
+  if(!item) return;
+  if(save.coins < item.price){ showNotif('Yetersiz para! '+item.price+'💰 lazım.'); return; }
+  confirmDlg('Bu eşyayı almak istiyor musun?\n'+item.name+' - '+item.price+'💰', ()=>{
+    save.coins -= item.price;
+    save.owned[item.id] = true;
+    writeSave(); updateHUD(); renderMarket();
+    showNotif('✓ '+item.name+' alındı! Kullan: Eşyalar → Giy');
+    coinAnim(-item.price);
+  });
+}
+
+function equipItem(id){
+  let item = MARKET_ITEMS.find(i=>i.id===id);
+  if(!item) return;
+  // unequip same type
+  Object.keys(save.equipped).forEach(k=>{
+    let other = MARKET_ITEMS.find(i=>i.id===k);
+    if(other && hasSameType(other, item)) delete save.equipped[k];
+  });
+  save.equipped[id] = true;
+  writeSave(); renderMarket();
+  showNotif('✓ '+item.name+' giyildi!');
+}
+function hasSameType(a,b){
+  if(a.dmgBonus && b.dmgBonus) return true;
+  if(a.defBonus && b.defBonus) return true;
+  if(a.speedBonus && b.speedBonus) return true;
+  return false;
+}
+
+function renderSkills(){
+  let html = '';
+  SKILLS_DATA.forEach(sk => {
+    let learned = save.skills[sk.id];
+    html += `<div class="skill-row"><div><div class="item-name" style="color:#69f0ae">${sk.name}</div><div class="item-desc" style="color:#4caf50">${sk.desc}</div></div>`;
+    if(learned){
+      html += `<span class="item-owned">✓ ÖĞRENİLDİ</span>`;
+    } else {
+      html += `<div style="display:flex;align-items:center;gap:6px;"><span class="item-price">${sk.price}💰</span><button class="item-buy" style="background:#4caf50;" onclick="buySkill('${sk.id}')">ÖĞREN</button></div>`;
+    }
+    html += '</div>';
+  });
+  document.getElementById('skills-list').innerHTML = html;
+}
+
+function buySkill(id){
+  let sk = SKILLS_DATA.find(s=>s.id===id);
+  if(!sk) return;
+  if(save.coins < sk.price){ showNotif('Yetersiz para! '+sk.price+'💰 lazım.'); return; }
+  confirmDlg('Bu yeteneği öğrenmek istiyor musun?\n'+sk.name+' - '+sk.price+'💰', ()=>{
+    save.coins -= sk.price;
+    save.skills[sk.id] = true;
+    writeSave(); updateHUD(); renderSkills();
+    showNotif('⚡ '+sk.name+' öğrenildi!');
+    coinAnim(-sk.price);
+  });
+}
+
+function getPlayerStats(){
+  let dmg = 12, def = 0, spd = 1.0;
+  Object.keys(save.equipped).forEach(id=>{
+    let item = MARKET_ITEMS.find(i=>i.id===id);
+    if(!item) return;
+    if(item.dmgBonus) dmg += item.dmgBonus;
+    if(item.defBonus) def += item.defBonus;
+    if(item.speedBonus) spd += item.speedBonus;
+  });
+  if(save.skills['sk_punch2']) dmg *= 1.3;
+  return {dmg, def, spd};
+}
+
+// ============================================================
+// UI HELPERS
+// ============================================================
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.style.display='none');
+  let el = document.getElementById(id);
+  if(el){ el.style.display='flex'; }
+  if(id==='market-screen') renderMarket();
+  if(id==='skills-screen') renderSkills();
+}
+function showNotif(msg, dur=2500){
+  let n = document.getElementById('notif');
+  n.textContent = msg; n.style.display='block';
+  clearTimeout(n._t);
+  n._t = setTimeout(()=>n.style.display='none', dur);
+}
+function confirmDlg(msg, onYes, onNo){
+  let dlg = document.getElementById('confirm-dlg');
+  document.getElementById('confirm-msg').textContent = msg;
+  dlg.style.display='flex';
+  document.getElementById('confirm-yes-btn').onclick=()=>{ dlg.style.display='none'; if(onYes) onYes(); };
+  document.getElementById('confirm-no-btn').onclick=()=>{ dlg.style.display='none'; if(onNo) onNo(); };
+}
+function coinAnim(val){
+  let el = document.createElement('div');
+  el.className = 'coin-fly';
+  el.textContent = (val>0?'+':'')+val+'💰';
+  el.style.left = (Math.random()*60+20)+'%';
+  el.style.top = '60%';
+  if(val<0) el.style.color='#f44336';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 1100);
+}
+function announceRound(text, cb){
+  let el = document.getElementById('round-announce');
+  el.textContent = text; el.style.display='block';
+  setTimeout(()=>{ el.style.display='none'; if(cb) cb(); }, 1200);
+}
+
+function toggleMusic(){
+  save.musicOn = document.getElementById('toggle-music').checked;
+  writeSave();
+  updateMusicToggleUI();
+  if(save.musicOn && gameState==='duel') playMusic();
+  else stopMusic();
+}
+function toggleSfx(){
+  save.sfxOn = document.getElementById('toggle-sfx').checked;
+  writeSave();
+}
+function updateMusicToggleUI(){
+  document.getElementById('toggle-music').checked = save.musicOn;
+  document.getElementById('toggle-music-slider').style.background = save.musicOn ? '#ffd700' : '#333';
+  document.getElementById('toggle-sfx').checked = save.sfxOn;
+  document.getElementById('toggle-sfx-slider').style.background = save.sfxOn ? '#4caf50' : '#333';
+}
+updateMusicToggleUI();
+
+function resetData(){
+  confirmDlg('Tüm veriler silinsin mi? Bu geri alınamaz!', ()=>{
+    localStorage.removeItem(SAVE_KEY);
+    location.reload();
+  });
+}
+
+// ============================================================
+// AUDIO
+// ============================================================
+let audioCtx = null;
+let musicNode = null;
+let musicGain = null;
+
+function getAudioCtx(){
+  if(!audioCtx){ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
+  return audioCtx;
+}
+
+function playHitSound(){
+  if(!save.sfxOn) return;
+  try{
+    let ac = getAudioCtx();
+    let o = ac.createOscillator(), g = ac.createGain();
+    o.connect(g); g.connect(ac.destination);
+    o.frequency.setValueAtTime(200, ac.currentTime);
+    o.frequency.exponentialRampToValueAtTime(80, ac.currentTime+0.1);
+    g.gain.setValueAtTime(0.3, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+0.15);
+    o.start(); o.stop(ac.currentTime+0.15);
+  }catch(e){}
+}
+
+function playKickSound(){
+  if(!save.sfxOn) return;
+  try{
+    let ac = getAudioCtx();
+    let o = ac.createOscillator(), g = ac.createGain();
+    o.type='sawtooth'; o.connect(g); g.connect(ac.destination);
+    o.frequency.setValueAtTime(300, ac.currentTime);
+    o.frequency.exponentialRampToValueAtTime(50, ac.currentTime+0.12);
+    g.gain.setValueAtTime(0.4, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+0.18);
+    o.start(); o.stop(ac.currentTime+0.18);
+  }catch(e){}
+}
+
+function createBattleMusic(){
+  if(!save.musicOn) return;
+  try{
+    stopMusic();
+    let ac = getAudioCtx();
+    musicGain = ac.createGain();
+    musicGain.gain.value = 0.08;
+    musicGain.connect(ac.destination);
+    let bpm = 140, beat = 60/bpm;
+    let notes = [220,261,294,329,349,392,440,392,349,329,294,261];
+    let t = ac.currentTime + 0.1;
+    function scheduleLoop(){
+      notes.forEach((freq,i)=>{
+        let o = ac.createOscillator(), g = ac.createGain();
+        o.type='square'; o.frequency.value=freq;
+        o.connect(g); g.connect(musicGain);
+        g.gain.setValueAtTime(0, t+i*beat);
+        g.gain.linearRampToValueAtTime(0.5, t+i*beat+0.02);
+        g.gain.linearRampToValueAtTime(0, t+i*beat+beat*0.7);
+        o.start(t+i*beat); o.stop(t+i*beat+beat);
+      });
+    }
+    scheduleLoop();
+    let loopLen = notes.length * beat * 1000;
+    musicNode = setInterval(()=>{
+      t = ac.currentTime + 0.1;
+      scheduleLoop();
+    }, loopLen);
+  }catch(e){}
+}
+
+function playMusic(){
+  createBattleMusic();
+}
+function stopMusic(){
+  if(musicNode){ clearInterval(musicNode); musicNode=null; }
+}
+
+// ============================================================
+// CANVAS GAME ENGINE
+// ============================================================
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H, FLOOR, WORLD_W;
+
+function resize(){
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  FLOOR = H * 0.62 - (H*0.38); // will be set after controls shown
+  let controlsH = H * 0.38;
+  FLOOR = H - controlsH - 2;
+  WORLD_W = W * 3;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// Game state
+let gameState = 'menu'; // menu | duel | training
+let gamePaused = false;
+let currentDifficulty = 0;
+const DIFF_REWARDS = [10,20,50,70,150];
+const DIFF_NAMES = ['KOLAY','ORTA','ZOR','ÇOK ZOR','İMKANSIZ'];
+const DIFF_BOT_SPEED = [0.5, 0.8, 1.2, 1.6, 2.2];
+const DIFF_BOT_DMG = [6, 10, 16, 22, 30];
+const DIFF_BOT_HP = [80, 100, 130, 160, 200];
+
+// Match
+let matchTime = 0;
+let matchTimerInterval = null;
+let currentRound = 1;
+let pRoundsWon = 0;
+let eRoundsWon = 0;
+let roundActive = false;
+
+// Characters
+let p = { x:80, y:0, vx:0, vy:0, hp:100, maxHp:100, facing:1, state:'idle', stateTimer:0,
+  animFrame:0, animTimer:0, attacking:false, atkType:'', atkTimer:0, rolling:false, rollDir:0, rollTimer:0,
+  jumpCount:0, dead:false, deathTimer:0 };
+let bot = { x:W-100, y:0, vx:0, vy:0, hp:100, maxHp:100, facing:-1, state:'idle', stateTimer:0,
+  animFrame:0, animTimer:0, attacking:false, atkType:'', atkTimer:0, rolling:false, rollDir:0, rollTimer:0,
+  dead:false, deathTimer:0, aiTimer:0 };
+
+// Camera
+let camX = 0;
+
+// Training bag
+let bag = { x:0, y:0, angle:0, angV:0, hits:0, fallen:false, fallTimer:0, fallAngle:0 };
+
+// Input
+let joyActive = false, joyDX=0, joyDY=0;
+let joyStartX=0, joyStartY=0;
+
+// Sword
+let equippedSwordColor = '#eee';
+function updateSwordColor(){
+  let best = null;
+  MARKET_ITEMS.filter(i=>i.dmgBonus).forEach(i=>{ if(save.equipped[i.id]) best=i; });
+  equippedSwordColor = best ? best.color : '#eee';
+}
+
+// ============================================================
+// JOYSTICK
+// ============================================================
+let joyEl = document.getElementById('joy-wrap');
+let knobEl = document.getElementById('joy-knob');
+const JOY_R = 33;
+
+joyEl.addEventListener('touchstart', e=>{
+  e.preventDefault();
+  let t = e.touches[0], r = joyEl.getBoundingClientRect();
+  joyStartX = r.left+r.width/2; joyStartY = r.top+r.height/2;
+  joyActive=true;
+}, {passive:false});
+joyEl.addEventListener('touchmove', e=>{
+  e.preventDefault();
+  if(!joyActive) return;
+  let t = e.touches[0];
+  let dx = t.clientX-joyStartX, dy = t.clientY-joyStartY;
+  let dist = Math.sqrt(dx*dx+dy*dy);
+  if(dist > JOY_R){ dx*=JOY_R/dist; dy*=JOY_R/dist; }
+  joyDX = dx/JOY_R; joyDY = dy/JOY_R;
+  knobEl.style.transform=`translate(${dx}px,${dy}px)`;
+  // jump
+  if(joyDY < -0.6 && p.jumpCount < 1 && gameState!='menu' && roundActive){
+    p.vy = -18; p.jumpCount++;
+  }
+  // roll (left-down diagonal)
+  if(joyDX < -0.6 && joyDY > 0.5 && !p.rolling && roundActive){
+    startRoll(-1);
+  }
+}, {passive:false});
+joyEl.addEventListener('touchend', e=>{ joyActive=false; joyDX=0; joyDY=0; knobEl.style.transform=''; });
+
+function startRoll(dir){
+  p.rolling=true; p.rollDir=dir; p.rollTimer=30;
+}
+
+// ATTACK BUTTONS
+document.getElementById('btn-punch').addEventListener('touchstart', e=>{ e.preventDefault(); doAttack('punch'); },{passive:false});
+document.getElementById('btn-kick').addEventListener('touchstart', e=>{ e.preventDefault(); doAttack('kick'); },{passive:false});
+document.getElementById('btn-sword').addEventListener('touchstart', e=>{ e.preventDefault(); doAttack('sword'); },{passive:false});
+document.getElementById('btn-roll').addEventListener('touchstart', e=>{ e.preventDefault(); doAttack('roll_atk'); },{passive:false});
+
+function doAttack(type){
+  if(!roundActive || p.dead) return;
+  if(p.atkTimer > 0) return;
+  p.attacking=true; p.atkType=type; p.atkTimer=20;
+  // Check hit
+  let dist = Math.abs(p.x - bot.x);
+  let hitRange = type==='kick' ? 90 : type==='sword' ? 100 : 70;
+  let stats = getPlayerStats();
+  let baseDmg = stats.dmg;
+  if(type==='kick') baseDmg = Math.round(baseDmg*0.7);
+  if(type==='punch') baseDmg = Math.round(baseDmg*0.6);
+  if(type==='roll_atk'){ startRoll(p.facing); baseDmg=Math.round(baseDmg*1.2); }
+  if(save.skills['sk_punch2'] && type==='punch') baseDmg*=2;
+  if(save.skills['sk_kick2'] && type==='kick') baseDmg*=2;
+  if(dist < hitRange && !bot.dead){
+    let finalDmg = Math.max(1, baseDmg - 2);
+    bot.hp -= finalDmg;
+    bot.state='hurt'; bot.stateTimer=12;
+    playHitSound();
+    coinAnim('+'+Math.floor(finalDmg/5));
+    if(bot.hp <= 0){ bot.hp=0; endRound('player'); }
+  }
+  if(type==='kick'||type==='sword') playKickSound();
+  // Training bag
+  if(gameState==='training'){
+    let bdist = Math.abs(p.x - bag.x);
+    if(bdist < 80 && !bag.fallen){
+      bag.angV += (p.facing > 0) ? 8 : -8;
+      bag.hits++;
+      playHitSound();
+      if(bag.hits >= 40){ bag.fallen=true; bag.fallTimer=0; }
+    }
+  }
+}
+
+// ============================================================
+// BOT AI
+// ============================================================
+function updateBot(dt){
+  if(bot.dead || !roundActive || gameState!=='duel') return;
+  bot.aiTimer -= dt;
+  if(bot.aiTimer > 0) return;
+  bot.aiTimer = 0.3 + Math.random()*0.4;
+  let spd = DIFF_BOT_SPEED[currentDifficulty];
+  let dist = p.x - bot.x;
+  bot.facing = dist > 0 ? -1 : 1;
+  // Move towards player
+  if(Math.abs(dist) > 80){
+    bot.vx = (dist > 0 ? -spd : spd) * 2;
+  } else if(Math.abs(dist) < 50){
+    bot.vx = (dist > 0 ? spd : -spd) * 1.5;
+  } else {
+    bot.vx = 0;
+    // Attack
+    if(Math.abs(dist) < 95 && bot.atkTimer <= 0){
+      bot.attacking=true; bot.atkType=['punch','kick','sword'][Math.floor(Math.random()*3)];
+      bot.atkTimer=25;
+      let def = getPlayerStats().def;
+      let dmg = Math.max(1, DIFF_BOT_DMG[currentDifficulty] - Math.floor(def/5));
+      p.hp -= dmg;
+      p.state='hurt'; p.stateTimer=10;
+      if(save.skills['sk_counter'] && p.stateTimer > 0){
+        bot.hp -= 20; 
+      }
+      playHitSound();
+      if(p.hp <= 0){ p.hp=0; endRound('bot'); }
+      updateFightHP();
+    }
+  }
+  // Random jump
+  if(Math.random() < 0.1 && bot.y===0) bot.vy = -14;
+  // Random roll
+  if(Math.random() < 0.05 && !bot.rolling){
+    bot.rolling=true; bot.rollDir=bot.facing; bot.rollTimer=20;
+  }
+}
+
+// ============================================================
+// PHYSICS UPDATE
+// ============================================================
+const GRAVITY = 0.8;
+function updateChar(ch){
+  ch.vy += GRAVITY;
+  ch.y += ch.vy;
+  if(ch.y >= 0){ ch.y=0; ch.vy=0; ch.jumpCount=0; }
+  ch.x += ch.vx;
+  ch.vx *= 0.85;
+  if(ch.rolling){
+    ch.rollTimer--;
+    ch.x += ch.rollDir * 6;
+    if(ch.rollTimer<=0){ ch.rolling=false; }
+  }
+  if(ch.atkTimer>0) ch.atkTimer--;
+  else ch.attacking=false;
+  if(ch.stateTimer>0) ch.stateTimer--;
+  else if(ch.state==='hurt') ch.state='idle';
+  ch.animTimer++;
+  if(ch.animTimer>8){ ch.animTimer=0; ch.animFrame=(ch.animFrame+1)%4; }
+  // Bound
+  let margin=30;
+  if(ch.x < camX+margin) ch.x = camX+margin;
+  if(ch.x > camX+W-margin) ch.x = camX+W-margin;
+}
+
+// ============================================================
+// CAMERA
+// ============================================================
+function updateCamera(){
+  if(gameState==='training'){
+    camX = 0; return;
+  }
+  let midX = (p.x + bot.x) / 2;
+  let targetCam = midX - W/2;
+  targetCam = Math.max(0, Math.min(targetCam, WORLD_W - W));
+  camX += (targetCam - camX) * 0.1;
+}
+
+// ============================================================
+// DRAWING
+// ============================================================
+function drawBackground(){
+  if(gameState==='training'){
+    // Moon/training dojo
+    ctx.fillStyle='#0a0015';
+    ctx.fillRect(0,0,W,FLOOR);
+    // Moon
+    ctx.save();
+    ctx.beginPath(); ctx.arc(W*0.8, FLOOR*0.2, 50, 0, Math.PI*2);
+    ctx.fillStyle='rgba(255,255,200,0.15)'; ctx.fill();
+    ctx.strokeStyle='rgba(255,255,200,0.4)'; ctx.lineWidth=2; ctx.stroke();
+    ctx.restore();
+    // Stars
+    ctx.fillStyle='rgba(255,255,255,0.5)';
+    for(let i=0;i<30;i++){
+      let sx=(i*137)%W, sy=(i*97)%FLOOR*0.8;
+      ctx.fillRect(sx,sy,1.5,1.5);
+    }
+    // Ground
+    ctx.fillStyle='#111';
+    ctx.fillRect(0, FLOOR, W, H-FLOOR);
+    ctx.fillStyle='rgba(255,255,255,0.1)';
+    ctx.fillRect(0, FLOOR, W, 2);
+  } else {
+    // Bamboo duel arena
+    ctx.fillStyle='#0a0a0a';
+    ctx.fillRect(0,0,W,FLOOR);
+    // Bamboo stalks
+    ctx.save();
+    for(let i=0;i<8;i++){
+      let bx = ((i*200) - camX*0.3) % W;
+      if(bx<0) bx+=W;
+      ctx.strokeStyle='rgba(80,120,40,0.3)';
+      ctx.lineWidth=8;
+      ctx.beginPath(); ctx.moveTo(bx,0); ctx.lineTo(bx,FLOOR); ctx.stroke();
+      // Leaves
+      ctx.strokeStyle='rgba(60,100,30,0.2)';
+      ctx.lineWidth=3;
+      for(let j=0;j<5;j++){
+        let ly = j*FLOOR/5;
+        ctx.beginPath(); ctx.moveTo(bx,ly); ctx.lineTo(bx+30,ly-15); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(bx,ly); ctx.lineTo(bx-30,ly-15); ctx.stroke();
+      }
+    }
+    ctx.restore();
+    // Ground
+    ctx.fillStyle='#111';
+    ctx.fillRect(0, FLOOR, W, H-FLOOR);
+    ctx.fillStyle='rgba(255,255,255,0.08)';
+    ctx.fillRect(0, FLOOR, W, 2);
+  }
+}
+
+function drawBag(){
+  if(gameState!=='training') return;
+  let bx = W/2, ropeTop = 0, ropeH = 100;
+  bag.x = bx;
+  bag.y = FLOOR - 110;
+  ctx.save();
+  ctx.translate(bx, 0);
+  if(bag.fallen){
+    // Bag fell
+    bag.fallTimer++;
+    let progress = Math.min(1, bag.fallTimer/40);
+    let fallY = bag.y * progress + FLOOR * (1-progress) + (FLOOR-110)*progress;
+    ctx.fillStyle='#444'; ctx.fillRect(-3, 0, 6, ropeH);
+    ctx.translate(0, FLOOR-50);
+    ctx.rotate(Math.PI/2 * progress);
+    // bag on ground
+    ctx.fillStyle='#700'; ctx.strokeStyle='#000'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.roundRect(-17,0,34,110,8); ctx.fill(); ctx.stroke();
+  } else {
+    bag.angV *= 0.97; bag.angle += bag.angV * 0.03;
+    ctx.fillStyle='#444'; ctx.fillRect(-3, 0, 6, ropeH);
+    ctx.translate(0, ropeH);
+    ctx.rotate(bag.angle * Math.PI/180);
+    ctx.fillStyle='#700'; ctx.strokeStyle='#000'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.roundRect(-17,0,34,110,8); ctx.fill(); ctx.stroke();
+    // Straps
+    ctx.strokeStyle='#500'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(-17,20); ctx.lineTo(17,20); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-17,60); ctx.lineTo(17,60); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawStickman(ch, isPlayer){
+  let sx = ch.x - camX;
+  let sy = FLOOR + ch.y;
+  let scaleX = ch.facing;
+  let color = isPlayer ? '#fff' : '#555';
+  let swColor = isPlayer ? equippedSwordColor : '#888';
+  
+  ctx.save();
+  ctx.translate(sx, sy);
+  
+  // Death animation
+  if(ch.dead){
+    ch.deathTimer++;
+    let angle = Math.min(Math.PI/2, ch.deathTimer * 0.05);
+    ctx.rotate(angle * ch.facing);
+    ctx.translate(0, ch.deathTimer*1.5);
+    // Twitch
+    if(ch.deathTimer < 60){
+      ctx.translate(Math.sin(ch.deathTimer*0.8)*3, 0);
+    }
+  }
+  
+  ctx.scale(scaleX, 1);
+  
+  let f = ch.animFrame;
+  let isWalking = Math.abs(ch.vx) > 0.5;
+  let isAttacking = ch.attacking;
+  let isRolling = ch.rolling;
+  let isJumping = ch.y < -5;
+  let isHurt = ch.state === 'hurt';
+  
+  // Rolling
+  if(isRolling){
+    ctx.save();
+    ctx.rotate(ch.rollTimer * 0.2 * ch.rollDir);
+    drawBody(ctx, color, 0, 0, 'idle', 0);
+    ctx.restore();
+    ctx.restore(); return;
+  }
+  
+  // Draw body
+  let pose = 'idle';
+  if(isAttacking) pose = ch.atkType;
+  else if(isJumping) pose = 'jump';
+  else if(isHurt) pose = 'hurt';
+  else if(isWalking) pose = 'walk';
+  
+  drawBody(ctx, color, 0, 0, pose, f);
+  
+  // Sword
+  if(!isPlayer || true){
+    ctx.save();
+    if(pose==='sword'||pose==='backflip'||pose==='dragon'){
+      ctx.translate(8, -55);
+      ctx.rotate(ch.atkTimer > 10 ? -0.8 : 0.5);
+    } else {
+      ctx.translate(8, -50);
+      ctx.rotate(-0.3);
+    }
+    ctx.fillStyle=swColor;
+    ctx.fillRect(0,-3,55,6);
+    ctx.fillStyle='#aaa';
+    ctx.fillRect(-8,-5,12,10);
+    ctx.restore();
+  }
+  
+  ctx.restore();
+}
+
+function drawBody(ctx, color, ox, oy, pose, frame){
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 4;
+  ctx.lineCap = 'round';
+  
+  // Head
+  ctx.beginPath();
+  ctx.arc(ox, oy-90, 14, 0, Math.PI*2);
+  ctx.strokeStyle = color;
+  ctx.stroke();
+  
+  // Body
+  ctx.beginPath();
+  ctx.moveTo(ox, oy-76);
+  ctx.lineTo(ox, oy-40);
+  ctx.stroke();
+  
+  // Walk/idle legs & arms
+  let lSwing = pose==='walk' ? Math.sin(frame*1.5)*18 : 0;
+  let armSwing = pose==='walk' ? Math.sin(frame*1.5+1)*15 : 0;
+  
+  if(pose==='punch'){
+    // Punch pose
+    ctx.beginPath(); ctx.moveTo(ox, oy-65); ctx.lineTo(ox+35, oy-70); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ox, oy-65); ctx.lineTo(ox-20, oy-50); ctx.stroke();
+  } else if(pose==='kick'){
+    // Kick pose
+    ctx.beginPath(); ctx.moveTo(ox, oy-65); ctx.lineTo(ox-20, oy-60); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ox, oy-65); ctx.lineTo(ox+15, oy-55); ctx.stroke();
+    // High kick leg
+    ctx.beginPath(); ctx.moveTo(ox, oy-40); ctx.lineTo(ox+15, oy-20); ctx.lineTo(ox+40, oy-10); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ox, oy-40); ctx.lineTo(ox-12, oy); ctx.stroke();
+    return;
+  } else if(pose==='sword'||pose==='dragon'){
+    ctx.beginPath(); ctx.moveTo(ox, oy-65); ctx.lineTo(ox+30, oy-60); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ox, oy-65); ctx.lineTo(ox-20, oy-52); ctx.stroke();
+  } else if(pose==='jump'){
+    ctx.beginPath(); ctx.moveTo(ox, oy-65); ctx.lineTo(ox-25, oy-52); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ox, oy-65); ctx.lineTo(ox+25, oy-52); ctx.stroke();
+  } else if(pose==='hurt'){
+    ctx.beginPath(); ctx.moveTo(ox, oy-65); ctx.lineTo(ox-30, oy-75); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ox, oy-65); ctx.lineTo(ox+25, oy-75); ctx.stroke();
+  } else if(pose==='backflip'){
+    ctx.save(); ctx.rotate(-0.8);
+    ctx.beginPath(); ctx.moveTo(ox, oy-65); ctx.lineTo(ox+30, oy-55); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ox, oy-65); ctx.lineTo(ox-20, oy-70); ctx.stroke();
+    ctx.restore();
+  } else {
+    // Normal arms
+    ctx.beginPath(); ctx.moveTo(ox, oy-65); ctx.lineTo(ox-20+armSwing, oy-48); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ox, oy-65); ctx.lineTo(ox+20-armSwing, oy-48); ctx.stroke();
+  }
+  
+  // Legs
+  if(pose==='kick') return;
+  ctx.beginPath(); ctx.moveTo(ox, oy-40); ctx.lineTo(ox-12+lSwing, oy-20); ctx.lineTo(ox-12+lSwing*0.5, oy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ox, oy-40); ctx.lineTo(ox+12-lSwing, oy-20); ctx.lineTo(ox+12-lSwing*0.5, oy); ctx.stroke();
+}
+
+function updateFightHP(){
+  let pPct = Math.max(0, p.hp/p.maxHp*100);
+  let ePct = Math.max(0, bot.hp/bot.maxHp*100);
+  document.getElementById('p-hp-fill').style.width = pPct+'%';
+  document.getElementById('e-hp-fill').style.width = ePct+'%';
+  let pHpColor = pPct>50?'#4caf50':pPct>25?'#ff9800':'#f44336';
+  document.getElementById('p-hp-fill').style.background = pHpColor;
+}
+
+// ============================================================
+// ROUND MANAGEMENT
+// ============================================================
+function startRound(){
+  let stats = getPlayerStats();
+  p.hp = 100; p.maxHp = 100;
+  bot.hp = DIFF_BOT_HP[currentDifficulty]; bot.maxHp = bot.maxHp = DIFF_BOT_HP[currentDifficulty];
+  p.x = W*0.25 + camX; p.y=0; p.vx=0; p.vy=0; p.dead=false; p.deathTimer=0;
+  bot.x = W*0.75 + camX; bot.y=0; bot.vx=0; bot.vy=0; bot.dead=false; bot.deathTimer=0;
+  p.facing=1; bot.facing=-1;
+  roundActive=false; gamePaused=false;
+  updateFightHP();
+  announceRound('HAZIR?', ()=>{
+    announceRound('DÖVÜŞ!', ()=>{ roundActive=true; });
+  });
+}
+
+function endRound(winner){
+  roundActive=false;
+  let text = winner==='player' ? 'TUR SANA!' : 'TUR BOTA!';
+  if(winner==='player'){ pRoundsWon++; p.vy=-10; }
+  else { eRoundsWon++; bot.vy=-10; }
+  // Mark dead
+  if(winner==='player'){ bot.dead=true; }
+  else { p.dead=true; }
+  updateRoundDots();
+  announceRound(text, ()=>{
+    if(pRoundsWon >= 2){ endMatch('player'); }
+    else if(eRoundsWon >= 2){ endMatch('bot'); }
+    else { currentRound++; startRound(); }
+  });
+}
+
+function updateRoundDots(){
+  let pDots = document.getElementById('p-rounds').children;
+  let eDots = document.getElementById('e-rounds').children;
+  for(let i=0;i<pDots.length;i++) pDots[i].classList.toggle('won', i<pRoundsWon);
+  for(let i=0;i<eDots.length;i++) eDots[i].classList.toggle('won', i<eRoundsWon);
+}
+
+function endMatch(winner){
+  stopMusic();
+  clearInterval(matchTimerInterval);
+  let reward = DIFF_REWARDS[currentDifficulty];
+  if(winner==='player'){
+    save.coins += reward;
+    save.xp += reward*2;
+    checkLevelUp();
+    writeSave(); updateHUD();
+    coinAnim('+'+reward);
+    announceRound('ZAFERİN! +'+reward+'💰', ()=>{ endMatchScreen(true, reward); });
+  } else {
+    announceRound('YENİLDİN!', ()=>{ endMatchScreen(false, 0); });
+  }
+}
+
+function checkLevelUp(){
+  let xpNeeded = save.level * 100;
+  while(save.xp >= xpNeeded){
+    save.xp -= xpNeeded;
+    save.level++;
+    xpNeeded = save.level * 100;
+    showNotif('🎉 SEVİYE ATLADI! LV'+save.level);
+  }
+  writeSave();
+}
+
+function endMatchScreen(won, reward){
+  confirmDlg((won?'🏆 KAZANDIN! +'+reward+'💰\n':'💀 YENİLDİN!\n')+'Ana menüye dön?',
+    ()=>{ exitToMenu(); },
+    ()=>{ startDuel(currentDifficulty); }
+  );
+}
+
+// ============================================================
+// MATCH TIMER
+// ============================================================
+function startMatchTimer(){
+  matchTime=0;
+  clearInterval(matchTimerInterval);
+  matchTimerInterval = setInterval(()=>{
+    if(!gamePaused && roundActive){ matchTime++; }
+    let m=Math.floor(matchTime/60), s=matchTime%60;
+    document.getElementById('match-timer').textContent=m+':'+(s<10?'0':'')+s;
+  },1000);
+}
+
+// ============================================================
+// GAME START
+// ============================================================
+function startDuel(diff){
+  if(getEnergy()<=0){ showNotif('⚡ Oynama hakkın bitti! Dolması için bekle.'); return; }
+  if(!useEnergy()){ showNotif('⚡ Oynama hakkı yok!'); return; }
+  currentDifficulty = diff;
+  pRoundsWon=0; eRoundsWon=0; currentRound=1;
+  gameState='duel';
+  updateSwordColor();
+  document.getElementById('e-name').textContent = 'BOT - '+DIFF_NAMES[diff];
+  showScreen('');
+  document.getElementById('fight-hud').style.display='block';
+  document.getElementById('controls').style.display='flex';
+  document.getElementById('in-game-menu-btn').style.display='block';
+  updateRoundDots();
+  startMatchTimer();
+  if(save.musicOn) playMusic();
+  p.x=W*0.25; p.y=0; bot.x=W*0.75; bot.y=0;
+  camX=0;
+  startRound();
+}
+
+function startTraining(){
+  gameState='training';
+  updateSwordColor();
+  bag.hits=0; bag.fallen=false; bag.fallTimer=0; bag.angle=0; bag.angV=0;
+  showScreen('');
+  document.getElementById('fight-hud').style.display='none';
+  document.getElementById('controls').style.display='flex';
+  document.getElementById('in-game-menu-btn').style.display='block';
+  roundActive=true; gamePaused=false;
+  p.x=W*0.35; p.y=0; p.hp=100; p.dead=false;
+  camX=0;
+  stopMusic();
+}
+
+function showInGameMenu(){
+  gamePaused=true;
+  let penalty = gameState==='duel' ? 10 : 5;
+  confirmDlg('Ana menüye dönmek istiyor musun?\n(-'+penalty+'💰)', ()=>{
+    save.coins = Math.max(0, save.coins - penalty);
+    writeSave(); updateHUD();
+    exitToMenu();
+  }, ()=>{ gamePaused=false; });
+}
+
+function exitToMenu(){
+  stopMusic();
+  clearInterval(matchTimerInterval);
+  gameState='menu';
+  document.getElementById('fight-hud').style.display='none';
+  document.getElementById('controls').style.display='none';
+  document.getElementById('in-game-menu-btn').style.display='none';
+  roundActive=false; gamePaused=false;
+  showScreen('main-menu');
+}
+
+// ============================================================
+// MAIN GAME LOOP
+// ============================================================
+let lastTime=0;
+function gameLoop(ts){
+  let dt = Math.min((ts-lastTime)/1000, 0.05); lastTime=ts;
+  
+  ctx.clearRect(0,0,W,H);
+  
+  if(gameState==='menu'){
+    requestAnimationFrame(gameLoop); return;
+  }
+  
+  if(!gamePaused){
+    // Input
+    if(joyActive && roundActive && !p.dead){
+      p.vx = joyDX * getPlayerStats().spd * 4;
+      if(joyDX > 0.2) p.facing=1;
+      else if(joyDX < -0.2) p.facing=-1;
+    }
+    
+    updateChar(p);
+    if(gameState==='duel'){
+      updateBot(dt);
+      updateChar(bot);
+    }
+    updateCamera();
+  }
+  
+  drawBackground();
+  
+  if(gameState==='training') drawBag();
+  
+  // Draw characters
+  drawStickman(p, true);
+  if(gameState==='duel') drawStickman(bot, false);
+  
+  requestAnimationFrame(gameLoop);
+}
+requestAnimationFrame(gameLoop);
+
+// ============================================================
+// NOTIFICATIONS (random)
+// ============================================================
+const NOTIFS_LIST = [
+  '💡 Düello modunda 5 farklı zorluk var!',
+  '⚡ Oynama hakkın 2 saatte bir yenileniyor!',
+  '⚔ Marketten silah alarak daha güçlen!',
+  '🎯 Yetenekler öğrenerek özel vuruşlar kazan!',
+  '🏆 İmkansız zorlukta 150💰 kazanırsın!',
+  '🥊 Boks torbasına 40 kez vur, düşürsün!',
+];
+let notifIdx=0;
+setInterval(()=>{
+  if(gameState==='menu'){
+    showNotif(NOTIFS_LIST[notifIdx % NOTIFS_LIST.length]);
+    notifIdx++;
+  }
+}, 15000);
+
+// BACK BUTTON
+document.addEventListener('backbutton', ()=>{
+  if(gameState!=='menu'){
+    showInGameMenu();
+  }
+});
+
+// Initial screen
+showScreen('main-menu');
+updateHUD();
+</script>
+</body>
+</html>
